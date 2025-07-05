@@ -1,0 +1,6 @@
+Performance Metrics for BERT Single Appliance (washing machine)
+Binary Evaluation (Threshold = 200 W)
+Precision: 0.711
+Recall:    0.752
+F1 Score:  0.731
+Accuracy:  0.929
