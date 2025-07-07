@@ -5,42 +5,52 @@ import matplotlib.dates as mdates
 from datetime import timedelta
 import pandas as pd
 
-
-
 # Choose dataset type 
 dataset_type = "refit"  # or "ukdale"
+preload = True
 
 # Load dataset
 if dataset_type == "ukdale":
     dataset_path = r"C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\ukdale"
-    dataset = UKDaleRawCSVLoader(dataset_name="ukdale", path=dataset_path)
+    dataset = UKDaleRawCSVLoader(dataset_name="ukdale", path=dataset_path, preload_metadata=preload)
 elif dataset_type == "refit":
     dataset_path = r"C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\refit_clean"
-    dataset = REFITCSVLoader(dataset_name="refit", path=dataset_path)
+    dataset = REFITCSVLoader(dataset_name="refit", path=dataset_path, preload_metadata=preload)
 else:
     raise ValueError("Unsupported dataset type")
 
-
-# sys.exit()
+if not preload:
+    print('loading from H5...')
+    h5path = os.path.join(dataset.path, 'refit.h5')
+    dataset.load_from_h5(h5path)
+    print(dataset.houses)
+    
+    label_set = sorted(set(dataset.appliances))
+    label_to_index = {label: idx for idx, label in enumerate(label_set)}
+else:
+    output = os.path.join(dataset_path, 'refit.h5')
+    dataset.save_to_h5(output)
+    print(f'Dataset {dataset_type} saved to h5')
+    sys.exit()
 
 # Choose a house to inspect
-house_id = 3
+house_id = 1
 
 # Print all channel info
 if house_id in dataset.channels:
     print(f"\nChannels in House {house_id}:")
     for ch_id, channel in dataset.channels[house_id].items():
         print(f" - Channel ID: {ch_id}")
-        print(f"   Label     : {channel.label}")
+        print(f"   Raw Label : {channel.raw_label}")
         print(f"   Unit      : {channel.unit}")
         print(f"   Data Type : {channel.data_type}")
         print(f"   Data Shape: {channel.data.shape}")
+        print(f"   Universal Label: {channel.universal_label}")
         print()
 else:
     print(f"House {house_id} not found.")
 
-
-# sys.exit()
+sys.exit()
 
 def plot_house_channels(dataset, house_id, start=None, days=None):
     """
@@ -105,4 +115,4 @@ def plot_house_channels(dataset, house_id, start=None, days=None):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.show()
 
-plot_house_channels(dataset, house_id=3)
+plot_house_channels(dataset, house_id=house_id)
