@@ -1,3 +1,6 @@
+# Read Raw Data and store it as in a standard format
+# defined in UnifiedNILM
+
 from UnifiedNILM import UKDaleRawCSVLoader, REFITCSVLoader
 import sys, os
 import matplotlib.pyplot as plt
@@ -7,7 +10,10 @@ import pandas as pd
 
 # Choose dataset type 
 dataset_type = "refit"  # or "ukdale"
-preload = True
+
+# Set preload = true if you nead to read data from raw files during instance initiation (need to do this only once).
+# Set preload = false if you nead to read data h5 files for visualization or basic testing.
+preload = False 
 
 # Load dataset
 if dataset_type == "ukdale":
@@ -31,10 +37,16 @@ else:
     output = os.path.join(dataset_path, 'refit.h5')
     dataset.save_to_h5(output)
     print(f'Dataset {dataset_type} saved to h5')
-    sys.exit()
+    # sys.exit()
 
 # Choose a house to inspect
 house_id = 1
+
+
+# dataset.resample_all_channels(target_rate='10S')
+
+# output = os.path.join(dataset_path, 'refit.h5')
+# dataset.save_to_h5(output)
 
 # Print all channel info
 if house_id in dataset.channels:
@@ -46,6 +58,7 @@ if house_id in dataset.channels:
         print(f"   Data Type : {channel.data_type}")
         print(f"   Data Shape: {channel.data.shape}")
         print(f"   Universal Label: {channel.universal_label}")
+        print(f"   Sample Rate: {channel.sample_rate}")
         print()
 else:
     print(f"House {house_id} not found.")
@@ -85,13 +98,13 @@ def plot_house_channels(dataset, house_id, start=None, days=None):
         df = channel.data
 
         if not isinstance(df.index, pd.DatetimeIndex):
-            print(f"Skipping channel {channel.label} (no datetime index)")
+            print(f"Skipping channel {channel.universal_label} (no datetime index)")
             continue
 
         if start and end:
             df = df.loc[start:end]
 
-        ax.plot(df.index, df.iloc[:, 0], label=f"{channel.label} ({channel.unit})")
+        ax.plot(df.index, df.iloc[:, 0], label=f"{channel.universal_label} ({channel.unit})")
         ax.set_ylabel(channel.unit)
         ax.legend(loc='upper right')
         ax.grid(True, linestyle='--', alpha=0.6)

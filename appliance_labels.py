@@ -7,6 +7,7 @@ UNIVERSAL_LABEL_LIST = [
 ]
 
 LABEL_KEYWORDS_MAP = {
+    # universal_label : [ dataset keywords ]
     "aggregate":["aggregate"],
     "fridge": ["fridge"],
     "freezer": ["freezer", "chest freezer"],

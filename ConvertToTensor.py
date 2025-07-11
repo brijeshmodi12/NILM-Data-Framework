@@ -27,6 +27,7 @@ def loadh5(h5_path, houses=None, seq_len=200, overlap=0):
 
     dataset = REFITCSVLoader("refit", path=h5_path, preload_metadata=False)
     dataset.load_from_h5(h5_path)
+    
 
     if houses is None:
         houses = dataset.list_houses()
@@ -104,7 +105,9 @@ elif dataset_type == "refit":
 else:
     raise ValueError("Unsupported dataset type")
 
-house_id = 12
+house_id = 1
+seq_len = 512 # number of samples
+overlap = 0 # number of samples
 
 for house_id in range(25):
     h5path = os.path.join(dataset_path, 'refit.h5')
@@ -122,7 +125,9 @@ for house_id in range(25):
     save_dict = {
         'X': X,
         'Y': Y,
-        'appliance_labels': appliance_labels
+        'appliance_labels': appliance_labels,
+        'seq_len':seq_len,
+        'overlap':overlap
     }
 
     if dataset.tensors[0].shape != torch.tensor([0]):
