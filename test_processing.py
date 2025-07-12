@@ -2,7 +2,7 @@
 # Raw data => H5 => Tensors.
 # Assessing integrity of datasets during preprocessing
 
-from UnifiedNILM import UKDaleRawCSVLoader, REFITCSVLoader
+from UnifiedNILM.UnifiedNILM import UKDaleRawCSVLoader, REFITCSVLoader
 import torch
 from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt

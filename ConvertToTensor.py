@@ -2,7 +2,7 @@
 import torch
 from torch.utils.data import TensorDataset
 import numpy as np
-from UnifiedNILM import REFITCSVLoader, UKDaleRawCSVLoader
+from UnifiedNILM.UnifiedNILM import REFITCSVLoader, UKDaleRawCSVLoader
 import os
 
 def loadh5(h5_path, houses=None, seq_len=200, overlap=0):

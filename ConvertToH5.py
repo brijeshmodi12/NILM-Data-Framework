@@ -1,7 +1,6 @@
-# Read Raw Data and store it as in a standard format
+# Reads raw data and stores it as in a standard format
 # defined in UnifiedNILM
-
-from UnifiedNILM import UKDaleRawCSVLoader, REFITCSVLoader
+from UnifiedNILM import REFITLoader, UKDALELoader
 import sys, os
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -9,44 +8,39 @@ from datetime import timedelta
 import pandas as pd
 
 # Choose dataset type 
-dataset_type = "refit"  # or "ukdale"
+dataset_type = "ukdale"  # or "ukdale"
+print(f'Processing Dataset: {dataset_type}')
 
 # Set preload = true if you nead to read data from raw files during instance initiation (need to do this only once).
 # Set preload = false if you nead to read data h5 files for visualization or basic testing.
-preload = False 
+preload = True 
 
 # Load dataset
 if dataset_type == "ukdale":
     dataset_path = r"C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\ukdale"
-    dataset = UKDaleRawCSVLoader(dataset_name="ukdale", path=dataset_path, preload_metadata=preload)
+    dataset = UKDALELoader(dataset_name="ukdale", path=dataset_path, preload_metadata=preload)
 elif dataset_type == "refit":
     dataset_path = r"C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\refit_clean"
-    dataset = REFITCSVLoader(dataset_name="refit", path=dataset_path, preload_metadata=preload)
+    dataset = REFITLoader(dataset_name="refit", path=dataset_path, preload_metadata=preload)
 else:
     raise ValueError("Unsupported dataset type")
 
 if not preload:
     print('loading from H5...')
-    h5path = os.path.join(dataset.path, 'refit.h5')
+    h5path = os.path.join(dataset.path, f'{dataset_type}.h5')
     dataset.load_from_h5(h5path)
     print(dataset.houses)
     
     label_set = sorted(set(dataset.appliances))
     label_to_index = {label: idx for idx, label in enumerate(label_set)}
 else:
-    output = os.path.join(dataset_path, 'refit.h5')
+    output = os.path.join(dataset_path, f'{dataset_type}.h5')
     dataset.save_to_h5(output)
     print(f'Dataset {dataset_type} saved to h5')
     # sys.exit()
 
 # Choose a house to inspect
-house_id = 1
-
-
-# dataset.resample_all_channels(target_rate='10S')
-
-# output = os.path.join(dataset_path, 'refit.h5')
-# dataset.save_to_h5(output)
+house_id = 4
 
 # Print all channel info
 if house_id in dataset.channels:
@@ -59,11 +53,11 @@ if house_id in dataset.channels:
         print(f"   Data Shape: {channel.data.shape}")
         print(f"   Universal Label: {channel.universal_label}")
         print(f"   Sample Rate: {channel.sample_rate}")
-        print()
+        
 else:
     print(f"House {house_id} not found.")
 
-sys.exit()
+
 
 def plot_house_channels(dataset, house_id, start=None, days=None):
     """
