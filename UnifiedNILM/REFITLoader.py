@@ -43,8 +43,8 @@ class REFITLoader(TimeSeriesNILMDataset):
 
         for file in sorted(csv_files):
             house_id = int(file.replace("CLEAN_House", "").replace(".csv", ""))
-            if house_id != 4:
-                continue
+            # if house_id != 4:
+            #     continue
             print(f"Processing House: {house_id}")
             self.houses.append(house_id)
 

@@ -1,0 +1,3 @@
+lr: 0.001
+seq_len: 512
+temperature: 0.1

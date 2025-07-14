@@ -2,7 +2,7 @@
 import torch
 from torch.utils.data import TensorDataset
 import numpy as np
-from UnifiedNILM.UnifiedNILM import REFITCSVLoader, UKDaleRawCSVLoader
+from UnifiedNILM import REFITLoader, UKDALELoader
 import os
 
 def loadh5(h5_path, houses=None, seq_len=200, overlap=0):
@@ -25,7 +25,7 @@ def loadh5(h5_path, houses=None, seq_len=200, overlap=0):
     assert seq_len > 0, "Sequence length must be positive"
     assert 0 <= overlap < seq_len, "Overlap must be between 0 and seq_len - 1"
 
-    dataset = REFITCSVLoader("refit", path=h5_path, preload_metadata=False)
+    dataset = REFITLoader("refit", path=h5_path, preload_metadata=False)
     dataset.load_from_h5(h5_path)
     
 
@@ -98,10 +98,10 @@ preload = False
 # Load dataset
 if dataset_type == "ukdale":
     dataset_path = r"C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\ukdale"
-    # dataset = UKDaleRawCSVLoader(dataset_name="ukdale", path=dataset_path, preload_metadata=preload)
+    # dataset = UKDALELoader(dataset_name="ukdale", path=dataset_path, preload_metadata=preload)
 elif dataset_type == "refit":
     dataset_path = r"C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\refit_clean"
-    # dataset = REFITCSVLoader(dataset_name="refit", path=dataset_path, preload_metadata=preload)
+    # dataset = REFITLoader(dataset_name="refit", path=dataset_path, preload_metadata=preload)
 else:
     raise ValueError("Unsupported dataset type")
 

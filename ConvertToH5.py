@@ -8,7 +8,7 @@ from datetime import timedelta
 import pandas as pd
 
 # Choose dataset type 
-dataset_type = "ukdale"  # or "ukdale"
+dataset_type = "refit"  # or "ukdale"
 print(f'Processing Dataset: {dataset_type}')
 
 # Set preload = true if you nead to read data from raw files during instance initiation (need to do this only once).
@@ -57,7 +57,7 @@ if house_id in dataset.channels:
 else:
     print(f"House {house_id} not found.")
 
-
+sys.exit()
 
 def plot_house_channels(dataset, house_id, start=None, days=None):
     """

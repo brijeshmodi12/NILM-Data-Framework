@@ -15,7 +15,6 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error, confus
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, precision_recall_curve
 from postprocessing import *
 
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Load Dataset from Multiple Houses
@@ -23,7 +22,7 @@ def load_multiple_houses(house_ids, dataset_path, target_appliance, threshold_wa
     all_X = []
     all_Y_single = []
     max_power = 0.0
-
+    
     for house_id in house_ids:
         ptfile = os.path.join(dataset_path, f'h{house_id}_refit_tensor_dataset.pt')
         if not os.path.exists(ptfile):
@@ -101,7 +100,6 @@ load_model = True
 if load_model:
     model_path = f"best_model_{target_appliance}.pth"
     print('Setting Model Path for Preloading...')
-
 
 # === Dataset & Dataloaders ===
 full_dataset = TensorDataset(X, Y_single)
