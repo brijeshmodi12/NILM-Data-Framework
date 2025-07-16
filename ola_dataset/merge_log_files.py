@@ -3,18 +3,17 @@
 
 import os
 import re
-import json
+import json 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from datetime import datetime
 import pandas as pd
 from IPython.display import display, HTML
 import pickle
-
+import numpy as np
 # --- Config ---
 log_folder = r'C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets\ola'
 log_pattern = re.compile(r"mqtt\.log\.\d{8}")
-chosen_colormap = "viridis"  # Options: plasma, cividis, inferno, magma, etc.
 
 # --- Parse one log file ---
 def parse_log_file(filepath):
@@ -75,41 +74,4 @@ with open("power_data.pkl", "wb") as f:
         "ordered_devices": ordered_devices
     }, f)
 
-print("✅ Data saved to power_data.pkl")
-
-
-# # --- Plot ---
-# num_plots = len(ordered_devices)
-# fig, axes = plt.subplots(num_plots, 1, figsize=(15, 1.5 * num_plots), sharex=True)
-
-# # Use colormap
-# cmap = cm.get_cmap(chosen_colormap, num_plots)
-# colors = [cmap(i) for i in range(num_plots)]
-
-# # --- Scrollable output for Jupyter ---
-# display(HTML('<div style="height:800px; overflow:auto; border:1px solid #ccc; padding:10px">'))
-
-# for ax, col, color in zip(axes, ordered_devices, colors):
-#     ax.plot(df_pivot.index, df_pivot[col], label=col, color=color, linewidth=1.5)
-
-#     # Remove top and right box lines
-#     ax.spines['top'].set_visible(False)
-#     ax.spines['right'].set_visible(False)
-
-#     # Thicken axis lines
-#     for spine in ax.spines.values():
-#         spine.set_linewidth(2)
-
-#     # Add legend instead of title
-#     ax.legend(loc="upper right", frameon=False)
-
-#     ax.set_ylabel("Power (W)")
-#     ax.grid(True)
-
-# plt.xlabel("Timestamp")
-# plt.tight_layout()
-# plt.xticks(rotation=45)
-# plt.show()
-
-# # --- End scrollable container ---
-# display(HTML("</div>"))
+print("Data saved to power_data.pkl")
