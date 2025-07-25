@@ -6,10 +6,9 @@ from UnifiedNILM.UniversalLabels import UNIVERSAL_LABEL_LIST, LABEL_KEYWORDS_MAP
 import json
 import h5py
 import numpy as np
+import re
 
-# Pending confirmation of power units for UK dale
-# testing 
-# adding support class for Ola house
+
 # acquistion method, manufacturer etc for REFIT
 # bring refit to same standards as ukdale in terms of computing sampling interval
 # assessing power units etc.
@@ -40,14 +39,29 @@ class Channel:
         self.universal_label = self.map_to_universal_label(raw_label)
 
     def map_to_universal_label(self, label):
-        label_clean = label.lower().replace("_", " ").replace(",", " ")
+        label_clean = re.sub(r"[_\-,]", " ", label.lower()).strip()
+        label_clean = re.sub(r"\s+", " ", label_clean)
+
+        # Try exact matches first
         for universal, keywords in LABEL_KEYWORDS_MAP.items():
             for kw in keywords:
-                if kw in label_clean:
+                kw_clean = re.sub(r"[_\-,]", " ", kw.lower()).strip()
+                if label_clean == kw_clean:
                     return universal
+
+        # Try partial keyword matches
+        for universal, keywords in LABEL_KEYWORDS_MAP.items():
+            for kw in keywords:
+                kw_clean = re.sub(r"[_\-,]", " ", kw.lower()).strip()
+                if kw_clean in label_clean:
+                    return universal
+
+        # Try fallback to universal label names
         for universal in UNIVERSAL_LABEL_LIST:
-            if universal.replace("_", " ") in label_clean:
+            universal_clean = universal.replace("_", " ")
+            if universal_clean in label_clean:
                 return universal
+
         return "other"
 
     def resample(self, new_rate):
