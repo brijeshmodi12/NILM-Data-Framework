@@ -8,7 +8,7 @@ from datetime import timedelta
 import pandas as pd
 
 # Choose dataset type 
-dataset_type = "ola"  # or "ukdale"
+dataset_type = "refit"  # or "ukdale"
 print(f'Processing Dataset: {dataset_type}')
 
 # Set preload = true if you nead to read data from raw files during instance initiation (need to do this only once).
@@ -46,28 +46,29 @@ else:
 house_id = 1
 
 # Print all channel info
-# if house_id in dataset.channels:
-#     print(f"\nChannels in House {house_id}:")
-#     for ch_id, channel in dataset.channels[house_id].items():
-#         # print(f" - Channel ID: {ch_id}")
-#         print(f"   Raw Label : {channel.raw_label}")
-#         print(f"   Unit      : {channel.unit}")
-#         print(f"   Data Type : {channel.data_type}")
-#         print(f"   Data Shape: {channel.data.shape}")
-#         print(f"   Universal Label: {channel.universal_label}")
-#         print(f"   Sample Rate: {channel.sample_rate}")
-#         print(f"   Acq. Device: {channel.acquisition_device}")
-#         print('-------------------------------------------')
-# else:
-#     print(f"House {house_id} not found.")
+if house_id in dataset.channels:
+    print(f"\nChannels in House {house_id}:")
+    for ch_id, channel in dataset.channels[house_id].items():
+        # print(f" - Channel ID: {ch_id}")
+        print(f"   Raw Label : {channel.raw_label}")
+        print(f"   Unit      : {channel.unit}")
+        print(f"   Data Type : {channel.data_type}")
+        print(f"   Data Shape: {channel.data.shape}")
+        print(f"   Universal Label: {channel.universal_label}")
+        print(f"   Sample Rate: {channel.sample_rate}")
+        print(f"   Acq. Device: {channel.acquisition_device}")
+        print('-------------------------------------------')
+else:
+    print(f"House {house_id} not found.")
 
-
-chlist = dataset.get_channels_by_power_type(house_id=1, power_type='active', acquisition_device='shelly')
+sys.exit()
+chlist = dataset.get_channels_by_power_type(house_id=1, power_type='active', acquisition_device=None)
 
 for ch in chlist:
     print(ch.raw_label)
     print(ch.universal_label)
     print(ch.acquisition_device)
+    df = ch.data
     print('-------------------------------------------')
 
 sys.exit()
