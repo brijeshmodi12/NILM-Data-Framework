@@ -8,7 +8,6 @@ import h5py
 import numpy as np
 import re
 
-
 # acquistion method, manufacturer etc for REFIT
 # bring refit to same standards as ukdale in terms of computing sampling interval
 # assessing power units etc.
@@ -20,7 +19,7 @@ class Channel:
         id,
         raw_label,
         unit="watts",
-        data_type="power",
+        data_type="active",
         data=None,
         sample_rate=None,
         manufacturer="Unknown",
@@ -383,23 +382,19 @@ class BaseNILMDataset(ABC):
 
 class TimeSeriesNILMDataset(BaseNILMDataset):
 
-    def get_appliance_power(self, house_id, appliance, start=None, end=None):
+    def get_appliance_power(self, house_id, universal_label, start=None, end=None):
         """
         Retrieve power time series of all appliance channels with a matching universal label.
-
-        Returns:
-            List[pd.DataFrame]: List of DataFrames (one per matching channel),
-                                or empty list if not found.
         """
-        appliance = appliance.lower()
+        universal_label = universal_label.lower()
         matched = [
             ch for ch in self.channels.get(house_id, {}).values()
-            if ch.universal_label == appliance and ch.data_type == "power"
+            if ch.universal_label == universal_label
         ]
 
         results = []
         for ch in matched:
-            df = ch.data.loc[start:end] if start or end else ch.data
+            df = ch.data.loc[start:end] if (start or end) else ch.data
             results.append(df)
 
         return results
@@ -407,11 +402,89 @@ class TimeSeriesNILMDataset(BaseNILMDataset):
 
     def get_aggregate(self, house_id, start=None, end=None):
         """
-        Return the aggregate power time series for a given house.
+        Return the aggregate power time series for a given house (direct aggregate channel if available).
         """
         for ch in self.channels.get(house_id, {}).values():
             if ch.raw_label.lower() == "aggregate":
                 df = ch.data
-                return df.loc[start:end] if start or end else df
+                return df.loc[start:end] if (start or end) else df
         return pd.DataFrame()
 
+    
+    def get_channels_by_power_type(self, house_id, power_type="active", acquisition_device=None):
+        """
+        Return all channels for a house that match the given power type and optionally a specific acquisition device.
+
+        Args:
+            house_id (int): ID of the house
+            power_type (str): Power type filter ('active', 'reactive', etc.)
+            acquisition_device (str, optional): Acquisition device to filter by (e.g., 'Shelly').
+                                                If None, all devices are included.
+
+        Returns:
+            List[Channel]: Matching channel objects
+        """
+        power_type = power_type.lower()
+        device_filter = acquisition_device.lower() if acquisition_device else None
+
+        return [
+            ch for ch in self.channels.get(house_id, {}).values()
+            if ch.data_type.lower() == power_type and
+            (device_filter is None or ch.acquisition_device.lower() == device_filter)
+        ]
+
+
+
+    def compute_aggregate_from_appliances(self, house_id, power_type="active",
+                                      exclude_labels=None, exclude_channels=None,
+                                      exclude_acquisition_devices=None,
+                                      start=None, end=None):
+        """
+        Compute aggregate power by summing appliance channels of a specific power type.
+
+        Args:
+            house_id (int): ID of the house
+            power_type (str): Which power type to use ('active', 'reactive', etc.)
+            exclude_labels (list[str]): Universal labels to exclude
+            exclude_channels (list[str]): Channel IDs to exclude
+            exclude_acquisition_devices (list[str]): Acquisition devices to exclude (e.g., ['Shelly', 'EMONESP'])
+            start (datetime, optional): Start time for slicing
+            end (datetime, optional): End time for slicing
+
+        Returns:
+            pd.DataFrame: Time series of computed aggregate power
+        """
+        exclude_labels = set(lbl.lower() for lbl in (exclude_labels or []))
+        exclude_channels = set(exclude_channels or [])
+        exclude_acquisition_devices = set(dev.lower() for dev in (exclude_acquisition_devices or []))
+
+        house_channels = self.channels.get(house_id, {})
+        selected_channels = []
+
+        for ch_id, ch in house_channels.items():
+            if ch.raw_label.lower() == "aggregate":
+                continue  # skip existing aggregate channel
+            if ch.data_type.lower() != power_type.lower():
+                continue
+            if ch.universal_label.lower() in exclude_labels:
+                continue
+            if ch_id in exclude_channels:
+                continue
+            if ch.acquisition_device.lower() in exclude_acquisition_devices:
+                continue
+            selected_channels.append(ch)
+
+        if not selected_channels:
+            print(f"[Info] No appliance channels found for house {house_id} with power_type='{power_type}'.")
+            return pd.DataFrame()
+
+        # Align and sum channels
+        dfs = []
+        for ch in selected_channels:
+            df = ch.data.loc[start:end] if (start or end) else ch.data
+            dfs.append(df.rename(columns={"power": f"power_{ch_id}"}))
+
+        combined = pd.concat(dfs, axis=1).fillna(0)
+        combined["aggregate_computed"] = combined.sum(axis=1)
+
+        return combined[["aggregate_computed"]]
