@@ -1,0 +1,16 @@
+Steps for Preprocessing:
+
+1. Run ConvertToH5.py
+    This reads raw datasets from diverse formats into standard BaseNILMDataset class.
+    - Currently contains wrappers for REFIT and UKDale Dataset
+    - No data resampling occurs during this conversion
+    
+
+2. Run ConvertToTensor.py
+    This converts the H5 files into tensors for training.
+    - Users can resample data to desired sampling rate for uniformity across datasets
+    - Users are required set desired seq_len, overlap during conversion.
+
+
+
+
