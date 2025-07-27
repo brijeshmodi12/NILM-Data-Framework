@@ -8,12 +8,12 @@ from datetime import timedelta
 import pandas as pd
 
 # Choose dataset type 
-dataset_type = "refit"  # or "ukdale"
+dataset_type = "ola"  # or "ukdale"
 print(f'Processing Dataset: {dataset_type}')
 
 # Set preload = true if you nead to read data from raw files during instance initiation (need to do this only once).
 # Set preload = false if you nead to read data h5 files for visualization or basic testing.
-preload = True 
+preload = False 
 
 dataset_root = r'C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets'
 dataset_path = os.path.join(dataset_root, dataset_type)
