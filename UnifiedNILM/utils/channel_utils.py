@@ -1,5 +1,6 @@
 from typing import List, Dict, Tuple, Optional, Union
 from UnifiedNILM.UnifiedNILM import BaseNILMDataset, Channel
+import copy
 
 def get_common_channels(
     datasets: Union[BaseNILMDataset, List[BaseNILMDataset]],
@@ -76,3 +77,63 @@ def get_common_channels(
                 result[(ds.dataset_name, house_id)] = filtered
 
     return result
+
+
+def resample_all_channels(channels_input, new_rate):
+    """
+    Resample all given channels to a specified sampling rate and return a new 
+    structure with resampled channels (does not modify the input).
+
+    Supports:
+    - Dictionary input: {(dataset_name, house_id): {channel_id: Channel}}
+    - List input: [Channel, Channel, ...]
+
+    Parameters:
+        channels_input (dict | list): Channels to be resampled.
+        new_rate (str): Target sampling interval (e.g., '8S' for 8 seconds).
+
+    Returns:
+        dict | list: A new structure with resampled channels.
+    
+    Potential optimization: Allow users to choose whether to resample in place or create a copy
+    """
+
+    def _clone_and_resample(channel_obj, channel_id=None, dataset_name=None, house_id=None):
+        """Helper to create a copy of a channel and safely resample it."""
+        new_channel = copy.deepcopy(channel_obj)
+        try:
+            new_channel.resample(new_rate)
+        except Exception as e:
+            ident = f"channel {channel_id}" if channel_id else "channel"
+            if dataset_name and house_id:
+                ident += f" in dataset '{dataset_name}', house '{house_id}'"
+            print(f"[Error] Failed to resample {ident}: {e}")
+        return new_channel
+
+    # --- Case 1: Input is a dictionary ---
+    if isinstance(channels_input, dict):
+        new_dict = {}
+        for (dataset_name, house_id), channels in channels_input.items():
+            if not isinstance(channels, dict):
+                print(f"[Warning] Expected dict of channels for {(dataset_name, house_id)}, got {type(channels)}. Skipping.")
+                continue
+
+            print(f"[Info] Resampling channels for dataset '{dataset_name}', house '{house_id}' to {new_rate}...")
+            new_dict[(dataset_name, house_id)] = {
+                channel_id: _clone_and_resample(channel_obj, channel_id, dataset_name, house_id)
+                for channel_id, channel_obj in channels.items()
+                if hasattr(channel_obj, "resample") and callable(channel_obj.resample)
+            }
+        return new_dict  # ✅ new dict with resampled copies
+
+    # --- Case 2: Input is a plain list ---
+    elif isinstance(channels_input, list):
+        print(f"[Info] Resampling a list of {len(channels_input)} channels to {new_rate}...")
+        return [
+            _clone_and_resample(channel_obj, channel_id=f"list_index_{idx}")
+            for idx, channel_obj in enumerate(channels_input)
+            if hasattr(channel_obj, "resample") and callable(channel_obj.resample)
+        ]
+
+    else:
+        raise TypeError("channels_input must be either a dict {(dataset_name, house_id): {channel_id: Channel}} or a list of Channel objects.")
