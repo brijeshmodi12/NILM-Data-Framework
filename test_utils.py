@@ -1,10 +1,10 @@
 import os, sys
 from UnifiedNILM import UKDALELoader, REFITLoader, OlaLoader
-from UnifiedNILM.utils.channel_utils import get_common_channels, resample_all_channels
+from UnifiedNILM.utils.channel_utils import get_common_channels, resample_all_channels, prepare_nilm_tensors
 import matplotlib.pyplot as plt
 
 dataset_root = r'C:\Users\brind\OneDrive - Universitetet i Oslo\Codes\Alva\datasets'
-dataset_list = [ 'ola']
+dataset_list = ['refit', 'ola']
 preload = False
 dataset_type = 'preprocessed'  # example: choose the correct h5 type
 
@@ -32,10 +32,10 @@ for name in dataset_list:
 
 # Example usage
 # ukdale = datasets['ukdale']
-# refit = datasets['refit']
+refit = datasets['refit']
 ola = datasets['ola']
 
-chlist = get_common_channels([ola],
+chlist = get_common_channels([refit, ola],
                              required_labels=['dishwasher', 'television', 'tumble_dryer', 'aggregate'],
                              required_data_types=['active'])
 
@@ -43,8 +43,22 @@ for (ds_name, house_id), channels in chlist.items():
     for ch_id, ch in channels.items():
         print(f"Dataset: {ds_name}, House: {house_id}, FS: {ch.sample_rate}, Label: {ch.universal_label}")
 
+nilm_tensors = prepare_nilm_tensors(chlist, new_rate='10s', sequence_length=512, overlap=0.5)
 
-resampled_chlist = resample_all_channels(chlist, new_rate='10S')
+
+
+print("Appliance order:", nilm_tensors["_meta"])
+
+# Iterate only over house entries
+for key, tensors in nilm_tensors.items():
+    if key == "_meta":
+      # skip metadata entry
+
+        continue
+    ds, hid = key                 # safe unpacking
+    print(f"{ds}-{hid}: X{tuple(tensors['X'].shape)}, y{tuple(tensors['y'].shape)}")
+
+sys.exit()
 
 
 for (ds_name, house_id), channels in resampled_chlist.items():

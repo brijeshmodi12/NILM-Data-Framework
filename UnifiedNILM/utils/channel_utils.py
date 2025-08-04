@@ -1,6 +1,8 @@
 from typing import List, Dict, Tuple, Optional, Union
 from UnifiedNILM.UnifiedNILM import BaseNILMDataset, Channel
 import copy
+import torch
+import numpy as np
 
 def get_common_channels(
     datasets: Union[BaseNILMDataset, List[BaseNILMDataset]],
@@ -137,3 +139,110 @@ def resample_all_channels(channels_input, new_rate):
 
     else:
         raise TypeError("channels_input must be either a dict {(dataset_name, house_id): {channel_id: Channel}} or a list of Channel objects.")
+    
+
+def prepare_nilm_tensors(chlist, new_rate=None, sequence_length=256, overlap=0):
+    """
+    Prepare NILM tensors with consistent appliance ordering across houses.
+
+    Returns:
+        dict: { (dataset_name, house_id): {'X': Tensor, 'y': Tensor},
+                "_meta": {sampling_rate, sequence_length, overlap,
+                          appliance_order, n_appliances,
+                          houses, n_samples_per_house} }
+    """
+
+    # 1. Global appliance order (exclude aggregate)
+    all_appliances = sorted({
+        (ch.universal_label or "").lower()
+        for house in chlist.values()
+        for ch in house.values()
+        if (ch.universal_label or "").lower() not in ("", "aggregate")
+    })
+    print(f"[Info] Global appliance order: {all_appliances}")
+
+    # 2. Resample or validate sampling rate
+    if new_rate:
+        print(f"[Info] Resampling all channels to {new_rate} ...")
+        channels_dict = resample_all_channels(chlist, new_rate=new_rate)
+        final_rate = new_rate
+    else:
+        print("[Info] No resampling requested. Checking sampling rate consistency...")
+        channels_dict = copy.deepcopy(chlist)
+        for (ds, hid), channels in channels_dict.items():
+            rates = {str(ch.sample_rate) for ch in channels.values() if ch.sample_rate is not None}
+            if len(rates) > 1:
+                raise ValueError(f"[Error] House {(ds, hid)} has inconsistent rates: {rates}")
+        # take the first available rate as meta-info
+        final_rate = next(iter(rates)) if rates else "unknown"
+
+    # 3. Helper for windowing
+    def create_windows(arr, seq_len, step):
+        n_samples = (len(arr) - seq_len) // step + 1
+        if n_samples <= 0:
+            return np.empty((0, seq_len, arr.shape[1]))
+        windows = np.lib.stride_tricks.sliding_window_view(arr, (seq_len, arr.shape[1]))
+        return windows[::step, 0, :, :]
+
+    step_size = int(sequence_length - (overlap * sequence_length if isinstance(overlap, float) else overlap))
+    step_size = max(1, step_size)
+
+    house_tensors = {}
+    n_samples_per_house = {}
+
+    # 4. Process houses
+    for (ds, hid), channels in channels_dict.items():
+        agg = None
+        appliance_series = {label: None for label in all_appliances}
+
+        # Collect signals
+        for ch_id, ch in channels.items():
+            if ch.data is None or ch.data.empty:
+                continue
+            label = (ch.universal_label or "").lower()
+            vals = ch.data.values.flatten().astype(np.float32)
+            if label == "aggregate":
+                agg = vals
+            elif label in appliance_series:
+                appliance_series[label] = vals
+
+        if agg is None:
+            print(f"[Warning] Skipping {(ds, hid)} (no aggregate).")
+            continue
+
+        # Align lengths
+        valid_series = [agg] + [v for v in appliance_series.values() if v is not None]
+        min_len = min(len(s) for s in valid_series)
+        agg = agg[:min_len].reshape(-1, 1)
+
+        y_list = [(appliance_series[l][:min_len] if appliance_series[l] is not None 
+                  else np.zeros(min_len, dtype=np.float32)) for l in all_appliances]
+        y_all = np.stack(y_list, axis=1)  # [T, n_appliances]
+
+        # Windowing
+        if len(agg) < sequence_length:
+            print(f"[Warning] {(ds, hid)} too short for windowing.")
+            continue
+
+        X_windows = create_windows(agg, sequence_length, step_size)
+        y_windows = create_windows(y_all, sequence_length, step_size)
+
+        # Save
+        house_tensors[(ds, hid)] = {
+            'X': torch.tensor(X_windows, dtype=torch.float32),
+            'y': torch.tensor(y_windows, dtype=torch.float32)
+        }
+        n_samples_per_house[(ds, hid)] = X_windows.shape[0]
+
+    # 5. Add metadata
+    house_tensors["_meta"] = {
+        "sampling_rate": final_rate,
+        "sequence_length": sequence_length,
+        "overlap": overlap,
+        "appliance_order": all_appliances,
+        "n_appliances": len(all_appliances),
+        "houses": [k for k in house_tensors.keys() if isinstance(k, tuple)],
+        "n_samples_per_house": n_samples_per_house
+    }
+
+    return house_tensors
