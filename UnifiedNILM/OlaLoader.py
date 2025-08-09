@@ -4,6 +4,7 @@ import json
 from UnifiedNILM import TimeSeriesNILMDataset, Channel
 
 class OlaLoader(TimeSeriesNILMDataset):
+    # Test line
     def load_metadata(self):
         self.houses = [1]
         self.channels = {1: {}}
