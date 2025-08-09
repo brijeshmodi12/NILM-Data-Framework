@@ -19,6 +19,7 @@ class OlaLoader(TimeSeriesNILMDataset):
         }
 
         def infer_sample_rate(index) -> str:
+            
             index = pd.to_datetime(index).sort_values()
             deltas = index.to_series().diff().dropna()
             deltas = deltas[deltas > pd.Timedelta(0)]
